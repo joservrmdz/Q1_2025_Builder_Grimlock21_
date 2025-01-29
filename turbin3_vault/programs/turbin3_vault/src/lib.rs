@@ -69,7 +69,7 @@ pub struct Payment<'info> {
     )]
     pub state: Account<'info, VaultState>,
     #[account(mut, seeds=[
-        b"vault",
+        b"turbin3_vault",
         state.key().as_ref()
     ],
         bump=state.vault_bump)]
@@ -97,7 +97,7 @@ impl<'info> Payment<'info> {
         };
 
         let seeds = &[
-            b"vault",
+            b"turbin3_vault",
             self.state.to_account_info().key.as_ref(),
             &[self.state.vault_bump],
         ];
@@ -139,7 +139,7 @@ impl<'info> Close<'info> {
         };
 
         let seeds = &[
-            b"vault",
+            b"turbin3_vault",
             self.state.to_account_info().key.as_ref(),
             &[self.state.vault_bump]
         ];
