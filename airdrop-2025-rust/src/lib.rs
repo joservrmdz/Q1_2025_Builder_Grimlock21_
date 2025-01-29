@@ -54,7 +54,7 @@ mod tests {
         let keypair = read_keypair_file("dev-wallet.json").expect("Couldn't find wallet file");
 
         // Define our Turbin3 public key
-        let to_pubkey = Pubkey::from_str("EEwaij6TNmWbM8mR7Li9MLJWAY33Vu5G6uWBkbkycp11").unwrap();
+        let to_pubkey = Pubkey::from_str("5QJUk3gsGdCB4QJzhW3ecJhePqvX2QZfdba1vNHMmQtr").unwrap();
 
         // Create a Solana devnet connection
         let rpc_client = RpcClient::new(RPC_URL);

@@ -1,5 +1,5 @@
 import { Commitment, Connection, Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js"
-import wallet from "../wba-wallet.json"
+import wallet from "../dev-wallet.json"
 import { getOrCreateAssociatedTokenAccount, transfer } from "@solana/spl-token";
 
 // We're going to import our keypair from the wallet file
@@ -13,7 +13,9 @@ const connection = new Connection("https://api.devnet.solana.com", commitment);
 const mint = new PublicKey("EVCgkUS3dGLYaK8Yk5iPZBmQBK1yobJ7bfZov2uXmq2A");
 
 // Recipient address
-const to = new PublicKey("AYnYh4u4tyANs9KJo1xegohEQcA2pWxeqHFMwUhE15eT");
+const to = new PublicKey("5QJUk3gsGdCB4QJzhW3ecJhePqvX2QZfdba1vNHMmQtr");
+
+const token_decimals = 1_000_000n;
 
 (async () => {
     try {
@@ -25,7 +27,7 @@ const to = new PublicKey("AYnYh4u4tyANs9KJo1xegohEQcA2pWxeqHFMwUhE15eT");
         const toWallet = await getOrCreateAssociatedTokenAccount(connection,keypair, mint, to);
         console.log(`recipient Wallet is ${toWallet.address}`)
         // Transfer the new token to the "toTokenAccount" we just created
-        const tx = await transfer(connection, keypair,fromWallet.address, toWallet.address, keypair,1_000_000);
+        const tx = await transfer(connection, keypair,fromWallet.address, toWallet.address, keypair, 10 );
         console.log(`Transfer id is ${tx}`);
     } catch(e) {
         console.error(`Oops, something went wrong: ${e}`)
