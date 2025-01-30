@@ -4,7 +4,7 @@ idlgen!({
   "version": "0.1.0",
   "name": "Turbin3_prereq",
   "metadata": {"address": "ADcaide4vBtKuyZQqdU689YqEGZMCmS4tL35bdTv9wJa" },
-  "instructions": [
+  "contexts": [
     {
       "name": "complete",
       "accounts": [
