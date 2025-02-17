@@ -1,3 +1,4 @@
+use std::io::Read;
 use crate::state::*;
 use anchor_lang::prelude::*;
 
@@ -8,7 +9,7 @@ pub struct CreateMatch<'info> {
     pub admin: Signer<'info>,
 
     #[account(
-        init,
+        init_if_needed,
         payer= admin,
         space= 8 + FantasyMatch::INIT_SPACE,
         seeds= [b"fantasy_match", admin.key().as_ref(), team1.as_bytes(), team2.as_bytes()],
