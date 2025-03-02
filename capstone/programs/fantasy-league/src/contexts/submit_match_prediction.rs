@@ -1,5 +1,8 @@
 use crate::state::*;
+use crate::errors::CustomError;
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::program::invoke;
+use anchor_lang::solana_program::system_instruction::transfer;
 
 #[derive(Accounts)]
 #[instruction(team1: String, team2: String, start_time: i64, team1score: i8, team2score: i8)]
@@ -15,9 +18,9 @@ pub struct SubmitPrediction<'info> {
 
     #[account(
         init_if_needed,
-        payer= player,
-        space= 8 + MatchPrediction::INIT_SPACE,
-        seeds= [b"prediction", fantasy_match.key().as_ref(), player.key().as_ref()],
+        payer = player,
+        space = 8 + MatchPrediction::INIT_SPACE,
+        seeds = [b"prediction", fantasy_match.key().as_ref(), player.key().as_ref()],
         bump
     )]
     pub match_prediction: Account<'info, MatchPrediction>,
@@ -39,8 +42,29 @@ impl<'info> SubmitPrediction<'info> {
                              _start_time: i64,
                              score1: i8,
                              score2: i8,
-                             bumps: &SubmitPredictionBumps) -> Result<()> {
+                                    bumps: &SubmitPredictionBumps) -> Result<()> {
+        require!(
+    **self.player.to_account_info().lamports.borrow() >= self.fantasy_match.stake,
+    CustomError::InsufficientFundsToSubmitPrediction);
+
+        let transfer_instruction = transfer(
+            self.player.to_account_info().key,
+            self.vault.to_account_info().key,
+            self.fantasy_match.stake,
+        );
+
+
+        invoke(
+            &transfer_instruction,
+            &[
+                self.player.to_account_info(),
+                self.vault.to_account_info(),
+                self.system_program.to_account_info(),
+            ],
+        )?;
+
         self.match_prediction.set_inner(MatchPrediction {
+            match_pda: self.fantasy_match.key(),
             player: self.player.key(),
             score1,
             score2,

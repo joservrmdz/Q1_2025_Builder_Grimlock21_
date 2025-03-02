@@ -69,6 +69,6 @@ impl<'info> Refund<'info> {
             self.token_program.to_account_info(),
             accounts,
             &signer_seeds);
-        close_account(ctx)
+         close_account(ctx)
     }
 }

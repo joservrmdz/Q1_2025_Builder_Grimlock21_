@@ -11,7 +11,7 @@ pub struct FantasyMatch {
     pub score1: i8,
     pub score2: i8,
     pub is_settled: bool,
-    pub stake: i32,
+    pub stake: u64,
     pub admin: Pubkey,
     pub bump: u8
 }

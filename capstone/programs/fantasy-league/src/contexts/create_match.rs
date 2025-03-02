@@ -28,7 +28,7 @@ pub struct CreateMatch<'info> {
 }
 
 impl<'info> CreateMatch<'info> {
-    pub fn create_match(&mut self, team1: String, team2: String, start_time: i64, stake: i32, bumps: &CreateMatchBumps) -> Result<()> {
+    pub fn create_match(&mut self, team1: String, team2: String, start_time: i64, stake: u64, bumps: &CreateMatchBumps) -> Result<()> {
         self.fantasy_match.set_inner(FantasyMatch {
             team1,
             team2,

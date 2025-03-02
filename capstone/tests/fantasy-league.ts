@@ -5,7 +5,6 @@ import {FantasyLeague} from "../target/types/fantasy_league";
 import {Keypair, LAMPORTS_PER_SOL, PublicKey, SystemProgram} from "@solana/web3.js";
 import {confirmTransaction} from '@solana-developers/helpers';
 import {expect} from "chai";
-import * as crypto from "crypto";
 
 
 describe("fantasy-league program allows to", () => {
@@ -15,7 +14,9 @@ describe("fantasy-league program allows to", () => {
     anchor.setProvider(provider);
     const connection = provider.connection;
     const user = provider.wallet as anchor.Wallet;
-    const player = Keypair.generate();
+    const fantasyPlayer1 = Keypair.generate();
+    const fantasyPlayer2 = Keypair.generate();
+    const fantasyPlayer3 = Keypair.generate();
     const startTime = Math.floor(Date.now() / 1000); // Current timestamp in seconds
     const team1 = "FC Barcelona";
     const team2 = "Rayo Vallecano";
@@ -24,16 +25,24 @@ describe("fantasy-league program allows to", () => {
     const admin = new PublicKey("3ztBce2GBtHKgK6cyWsrkVemULAdujwTGmsHQgSwWmQP");
     const program = anchor.workspace.FantasyLeague as Program<FantasyLeague>;
 
-    console.log(`User ${JSON.stringify(user)}`);
-
     before('Preparing environment for testing:', async () => {
         let tx1 = await provider.connection.requestAirdrop(
             admin,
-            2 * LAMPORTS_PER_SOL
+            100 * LAMPORTS_PER_SOL
         );
         let tx2 = await provider.connection.requestAirdrop(
-            player.publicKey,
-            2 * LAMPORTS_PER_SOL
+            fantasyPlayer1.publicKey,
+            100 * LAMPORTS_PER_SOL
+        );
+
+        await provider.connection.requestAirdrop(
+            fantasyPlayer2.publicKey,
+            100 * LAMPORTS_PER_SOL
+        );
+
+        await provider.connection.requestAirdrop(
+            fantasyPlayer3.publicKey,
+            100 * LAMPORTS_PER_SOL
         );
         await confirmTransaction(connection, tx1, 'confirmed')
     });
@@ -45,7 +54,7 @@ describe("fantasy-league program allows to", () => {
         const seedTeam1 = Buffer.from(team1);
         const seedTeam2 = Buffer.from(team2);
         const startTimeBuffer = toLEBytes(startTime);
-        const stake =  5;
+        const stake = new anchor.BN(3 * LAMPORTS_PER_SOL);
 
 
         const [matchPda, bump] = PublicKey.findProgramAddressSync(
@@ -69,24 +78,23 @@ describe("fantasy-league program allows to", () => {
             .rpc();
     });
 
-    it("Retrieve data from a match", async () => {
+    it("Retrieves data from a match", async () => {
         const seed = Buffer.from("fantasy_match");
         const seedTeam1 = Buffer.from(team1);
         const seedTeam2 = Buffer.from(team2);
         const startTimeBuffer = toLEBytes(startTime);
 
 
-        const [pda, bump] = PublicKey.findProgramAddressSync(
+        const [matchPda, bump] = PublicKey.findProgramAddressSync(
             [seed, seedTeam1, seedTeam2, startTimeBuffer],
             program.programId
         );
-        const matchData = await program.account.fantasyMatch.fetch(pda);
+        const matchData = await program.account.fantasyMatch.fetch(matchPda);
         expect(matchData.team1).to.equal(team1);
         expect(matchData.team2).to.equal(team2);
         expect(matchData.score1).to.eq(0);
         expect(matchData.score2).to.eq(0);
         expect(matchData.startTime.toNumber()).to.equal(startTime);
-
     });
 
     it("Input Match Predictions and update them", async () => {
@@ -101,19 +109,25 @@ describe("fantasy-league program allows to", () => {
             program.programId
         );
 
-        const [predictionPda, bump2] = PublicKey.findProgramAddressSync(
-            [Buffer.from("prediction"), matchPda.toBuffer(), player.publicKey.toBuffer()],
+        let [predictionPda, bump2] = PublicKey.findProgramAddressSync(
+            [Buffer.from("prediction"), matchPda.toBuffer(), fantasyPlayer1.publicKey.toBuffer()],
             program.programId
         );
+
+        let [vaultPda, vaultBump] = PublicKey.findProgramAddressSync(
+            [Buffer.from("vault"), matchPda.toBuffer()],
+            program.programId
+        );
+
         await program.methods
-            .submitPrediction(team1, team2, new anchor.BN(startTime), 2,  0)
+            .submitPrediction(team1, team2, new anchor.BN(startTime), 2, 0)
             .accountsPartial({
-                player: player.publicKey,
+                player: fantasyPlayer1.publicKey,
                 fantasyMatch: matchPda,
                 matchPrediction: predictionPda,
                 systemProgram: SystemProgram.programId,
             })
-            .signers([player])
+            .signers([fantasyPlayer1])
             .rpc();
 
         let matchPredictionData = await program.account.matchPrediction.fetch(predictionPda);
@@ -123,33 +137,124 @@ describe("fantasy-league program allows to", () => {
         await program.methods
             .submitPrediction(team1, team2, new anchor.BN(startTime), 3, 2)
             .accountsPartial({
-                player: player.publicKey,
+                player: fantasyPlayer1.publicKey,
                 fantasyMatch: matchPda,
                 matchPrediction: predictionPda,
+                vault: vaultPda,
                 systemProgram: SystemProgram.programId,
             })
-            .signers([player])
+            .signers([fantasyPlayer1])
             .rpc();
         matchPredictionData = await program.account.matchPrediction.fetch(predictionPda);
         expect(matchPredictionData.score1).to.eq(3);
         expect(matchPredictionData.score2).to.eq(2);
 
+         [predictionPda, bump2] = PublicKey.findProgramAddressSync(
+            [Buffer.from("prediction"), matchPda.toBuffer(), fantasyPlayer2.publicKey.toBuffer()],
+            program.programId
+        );
+
+        await program.methods
+            .submitPrediction(team1, team2, new anchor.BN(startTime), 1, 1)
+            .accountsPartial({
+                player: fantasyPlayer2.publicKey,
+                fantasyMatch: matchPda,
+                matchPrediction: predictionPda,
+                vault: vaultPda,
+                systemProgram: SystemProgram.programId,
+            })
+            .signers([fantasyPlayer2])
+            .rpc();
+        matchPredictionData = await program.account.matchPrediction.fetch(predictionPda);
+        expect(matchPredictionData.score1).to.eq(1);
+        expect(matchPredictionData.score2).to.eq(1);
+
+        [predictionPda, bump2] = PublicKey.findProgramAddressSync(
+            [Buffer.from("prediction"), matchPda.toBuffer(), fantasyPlayer3.publicKey.toBuffer()],
+            program.programId
+        );
+
+        await program.methods
+            .submitPrediction(team1, team2, new anchor.BN(startTime), 0, 0)
+            .accountsPartial({
+                player: fantasyPlayer3.publicKey,
+                fantasyMatch: matchPda,
+                matchPrediction: predictionPda,
+                vault: vaultPda,
+                systemProgram: SystemProgram.programId,
+            })
+            .signers([fantasyPlayer3])
+            .rpc();
+        matchPredictionData = await program.account.matchPrediction.fetch(predictionPda);
+        expect(matchPredictionData.score1).to.eq(0);
+        expect(matchPredictionData.score2).to.eq(0);
+
     });
 
-    // it("Input Retrieves all Predictions", async () => {
-    //     const accounts = await connection.getProgramAccounts(programId);
-    //     for (let account of accounts) {
-    //         try {
-    //             const matchData = await program.account.matchPrediction.fetch(account.pubkey);
-    //             console.log(`Match found at address ${account.pubkey.toBase58()}:`, JSON.stringify(matchData));
-    //         } catch (e) {
-    //             console.log(`No match data at account ${account.pubkey.toBase58()}`);
-    //         }
-    //     }
-    //
-    // });
+    it("allows an admin to submit the final result for a match", async () => {
+        const seed = Buffer.from("fantasy_match");
+        const seedTeam1 = Buffer.from(team1);
+        const seedTeam2 = Buffer.from(team2);
+        const startTimeBuffer = toLEBytes(startTime);
+
+        let [matchPda, bump] = PublicKey.findProgramAddressSync(
+            [seed, seedTeam1, seedTeam2, startTimeBuffer],
+            program.programId
+        );
+        const [vaultPda, bump2] = PublicKey.findProgramAddressSync(
+            [Buffer.from("vault"), matchPda.toBuffer()],
+            program.programId
+        );
+
+        let matchPredictions = await program.account.matchPrediction.all([
+            {
+                memcmp: {
+                    offset: 8, // Skip Anchor's 8-byte discriminator
+                    bytes: matchPda.toBase58(), // Match PDA filter
+                },
+            },
+        ]);
+
+        const matchData = await program.account.fantasyMatch.fetch(matchPda);
+        let winners = [];
+        console.log(`Final Result: ${matchData.team1}: ${matchData.score1} vs ${matchData.team2} : ${matchData.score2}`);
+        for (let matchPrediction of matchPredictions) {
+            console.log(`Player ${matchPrediction.publicKey} - Prediction:  ${matchPrediction.account.score1}  ${matchPrediction.account.score2}`);
+            if (matchPrediction.account.score1 === matchData.score1
+                && matchPrediction.account.score2 === matchData.score2) {
+                winners.push(matchPrediction);
+            }
+        }
+        for (let winner of winners) {
+            console.log(`Winner : ${winner.publicKey} , lamports : ${winner.lamports}`);
+        }
 
 
+        // Prepare the transaction
+        await program.methods
+            .submitFinalScore(team1, team2, new anchor.BN(startTime), 1, 1)
+            .accountsPartial({
+                admin,
+                fantasyMatch: matchPda,
+                vault: vaultPda,
+                systemProgram: SystemProgram.programId,
+            })
+            .rpc();
+    });
+
+
+// it("Input Retrieves all Predictions", async () => {
+//     const accounts = await connection.getProgramAccounts(programId);
+//     for (let account of accounts) {
+//         try {
+//             const matchData = await program.account.matchPrediction.fetch(account.pubkey);
+//             console.log(`Match found at address ${account.pubkey.toBase58()}:`, JSON.stringify(matchData));
+//         } catch (e) {
+//             console.log(`No match data at account ${account.pubkey.toBase58()}`);
+//         }
+//     }
+//
+// });
 
     function toLEBytes(value) {
         const buffer = new ArrayBuffer(8); // 8 bytes for i64
@@ -158,5 +263,6 @@ describe("fantasy-league program allows to", () => {
         return new Uint8Array(buffer);
     }
 
-});
+})
+;
 
