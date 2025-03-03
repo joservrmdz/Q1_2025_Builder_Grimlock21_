@@ -31,18 +31,22 @@ pub mod fantasy_league {
         Ok(())
     }
 
-    pub fn submit_final_score(ctx: Context<SubmitFinalScore>,
-                              team1: String,
-                              team2: String,
-                              start_time: i64,
-                              score1: i8,
-                              score2: i8) -> Result<()> {
-        ctx.accounts.submit_final_score(team1, team2, start_time, score1, score2, &ctx.bumps)?;
-        // let match_pda_key = ctx.accounts..key();
+    pub fn submit_final_score(
+        ctx: Context<SubmitFinalScore>,
+        team1: String,
+        team2: String,
+        start_time: i64,
+        score1: i8,
+        score2: i8,
+    ) -> Result<()> {
+        &mut ctx.accounts.submit_final_score(team1, team2, start_time, score1, score2, &ctx.bumps)?;
 
-        // ctx.accounts.settle_rewards_and_close_vault(&ctx.remaining_accounts, &ctx.bumps)?;
+        // Pass ctx.remaining_accounts correctly
+        let remaining_accounts= ctx.remaining_accounts.to_vec();
+        ctx.accounts.settle_rewards_and_close_vault(remaining_accounts, &ctx.bumps)?;
 
         Ok(())
     }
+
 }
 

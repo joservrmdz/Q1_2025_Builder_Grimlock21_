@@ -223,7 +223,12 @@ describe("fantasy-league program allows to", () => {
                 },
             },
         ]);
-
+        let adminAccount = await connection.getAccountInfo(admin);
+        let player = await connection.getAccountInfo(fantasyPlayer2.publicKey);
+        let vault = await connection.getAccountInfo(vaultPda);
+        console.log(`Player lamports before ${player.lamports}`);
+        console.log(`Admin lamports before ${adminAccount.lamports}`);
+        console.log(`Vault lamports before ${vault.lamports}`);
         const matchData = await program.account.fantasyMatch.fetch(matchPda);
         let winners = [];
         for (let matchPrediction of matchPredictions) {
@@ -242,7 +247,21 @@ describe("fantasy-league program allows to", () => {
                 vault: vaultPda,
                 systemProgram: SystemProgram.programId,
             })
+            .remainingAccounts(
+                winners.map(w => ({
+                    pubkey: w.publicKey,
+                    isSigner: false,
+                    isWritable: true // Set to true if modifying the account
+                }))
+            )
             .rpc();
+
+         adminAccount = await connection.getAccountInfo(admin);
+         player = await connection.getAccountInfo(fantasyPlayer2.publicKey);
+         vault = await connection.getAccountInfo(vaultPda);
+        console.log(`Player lamports after ${player.lamports}`);
+        console.log(`Admin lamports after ${adminAccount.lamports}`);
+        console.log(`Vault is closed =  ${vault === undefined}`);
     });
 
 
