@@ -5,11 +5,15 @@ import {FantasyLeague} from "../target/types/fantasy_league";
 import {Keypair, LAMPORTS_PER_SOL, PublicKey, SystemProgram} from "@solana/web3.js";
 import {confirmTransaction} from '@solana-developers/helpers';
 import {expect} from "chai";
+import dayjs from 'dayjs';
 
 
 describe("fantasy-league program allows to", () => {
 
-    // Configure the client to use the local cluster.
+
+    const time = dayjs().add(5, "hour").valueOf();
+    // Configure the client to use the loca
+    // dayjs().add(5, "hour" )l cluster.
     const provider = anchor.AnchorProvider.env();
     anchor.setProvider(provider);
     const connection = provider.connection;
@@ -17,7 +21,7 @@ describe("fantasy-league program allows to", () => {
     const fantasyPlayer1 = Keypair.generate();
     const fantasyPlayer2 = Keypair.generate();
     const fantasyPlayer3 = Keypair.generate();
-    const startTime = Math.floor(Date.now() / 1000); // Current timestamp in seconds
+    const startTime = Math.floor(time/1000); // Current timestamp in seconds
     const team1 = "FC Barcelona";
     const team2 = "Rayo Vallecano";
 
@@ -149,7 +153,7 @@ describe("fantasy-league program allows to", () => {
         expect(matchPredictionData.score1).to.eq(3);
         expect(matchPredictionData.score2).to.eq(2);
 
-         [predictionPda, bump2] = PublicKey.findProgramAddressSync(
+        [predictionPda, bump2] = PublicKey.findProgramAddressSync(
             [Buffer.from("prediction"), matchPda.toBuffer(), fantasyPlayer2.publicKey.toBuffer()],
             program.programId
         );
@@ -191,6 +195,11 @@ describe("fantasy-league program allows to", () => {
 
     });
 
+    it("should not allow submissions after the match has started")
+    {
+
+    }
+
     it("allows an admin to submit the final result for a match", async () => {
         const seed = Buffer.from("fantasy_match");
         const seedTeam1 = Buffer.from(team1);
@@ -217,18 +226,12 @@ describe("fantasy-league program allows to", () => {
 
         const matchData = await program.account.fantasyMatch.fetch(matchPda);
         let winners = [];
-        console.log(`Final Result: ${matchData.team1}: ${matchData.score1} vs ${matchData.team2} : ${matchData.score2}`);
         for (let matchPrediction of matchPredictions) {
-            console.log(`Player ${matchPrediction.publicKey} - Prediction:  ${matchPrediction.account.score1}  ${matchPrediction.account.score2}`);
             if (matchPrediction.account.score1 === matchData.score1
                 && matchPrediction.account.score2 === matchData.score2) {
                 winners.push(matchPrediction);
             }
         }
-        for (let winner of winners) {
-            console.log(`Winner : ${winner.publicKey} , lamports : ${winner.lamports}`);
-        }
-
 
         // Prepare the transaction
         await program.methods
