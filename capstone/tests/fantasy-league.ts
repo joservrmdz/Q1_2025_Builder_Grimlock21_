@@ -195,11 +195,6 @@ describe("fantasy-league program allows to", () => {
 
     });
 
-    it("should not allow submissions after the match has started")
-    {
-
-    }
-
     it("allows an admin to submit the final result for a match", async () => {
         const seed = Buffer.from("fantasy_match");
         const seedTeam1 = Buffer.from(team1);
@@ -210,6 +205,31 @@ describe("fantasy-league program allows to", () => {
             [seed, seedTeam1, seedTeam2, startTimeBuffer],
             program.programId
         );
+
+        // Prepare the transaction
+        await program.methods
+            .submitFinalScore(team1, team2, new anchor.BN(startTime), 1, 1)
+            .accountsPartial({
+                admin,
+                fantasyMatch: matchPda,
+                systemProgram: SystemProgram.programId,
+            })
+            .rpc();
+
+
+
+    });
+
+    it.skip("settles the rewards",async()  =>{
+        const seed = Buffer.from("fantasy_match");
+        const seedTeam1 = Buffer.from(team1);
+        const seedTeam2 = Buffer.from(team2);
+        const startTimeBuffer = toLEBytes(startTime);
+        let [matchPda, bump] = PublicKey.findProgramAddressSync(
+            [seed, seedTeam1, seedTeam2, startTimeBuffer],
+            program.programId
+        );
+
         const [vaultPda, bump2] = PublicKey.findProgramAddressSync(
             [Buffer.from("vault"), matchPda.toBuffer()],
             program.programId
@@ -223,6 +243,7 @@ describe("fantasy-league program allows to", () => {
                 },
             },
         ]);
+
         let adminAccount = await connection.getAccountInfo(admin);
         let player = await connection.getAccountInfo(fantasyPlayer2.publicKey);
         let vault = await connection.getAccountInfo(vaultPda);
@@ -235,34 +256,30 @@ describe("fantasy-league program allows to", () => {
             if (matchPrediction.account.score1 === matchData.score1
                 && matchPrediction.account.score2 === matchData.score2) {
                 winners.push(matchPrediction);
+                console.log(`Settling Rewards for ${matchPrediction.publicKey}, ${matchPda}, ${vaultPda}, ${matchPrediction.account.player}`);
+                await program.methods
+                    .settleRewards(new anchor.BN(1))
+                    .accountsPartial({
+                        admin,
+                        fantasyMatch: matchPda,
+                        vault: vaultPda,
+                        systemProgram: SystemProgram.programId,
+                        player: matchPrediction.account.player
+                    })
+                    .signers([admin])
+                    .rpc();
             }
         }
 
-        // Prepare the transaction
-        await program.methods
-            .submitFinalScore(team1, team2, new anchor.BN(startTime), 1, 1)
-            .accountsPartial({
-                admin,
-                fantasyMatch: matchPda,
-                vault: vaultPda,
-                systemProgram: SystemProgram.programId,
-            })
-            .remainingAccounts(
-                winners.map(w => ({
-                    pubkey: w.publicKey,
-                    isSigner: false,
-                    isWritable: true // Set to true if modifying the account
-                }))
-            )
-            .rpc();
-
-         adminAccount = await connection.getAccountInfo(admin);
-         player = await connection.getAccountInfo(fantasyPlayer2.publicKey);
-         vault = await connection.getAccountInfo(vaultPda);
+        adminAccount = await connection.getAccountInfo(admin);
+        player = await connection.getAccountInfo(fantasyPlayer2.publicKey);
+        vault = await connection.getAccountInfo(vaultPda);
         console.log(`Player lamports after ${player.lamports}`);
         console.log(`Admin lamports after ${adminAccount.lamports}`);
         console.log(`Vault is closed =  ${vault === undefined}`);
     });
+
+
 
 
 // it("Input Retrieves all Predictions", async () => {

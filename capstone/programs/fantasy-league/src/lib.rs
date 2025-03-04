@@ -39,14 +39,19 @@ pub mod fantasy_league {
         score1: i8,
         score2: i8,
     ) -> Result<()> {
-        &mut ctx.accounts.submit_final_score(team1, team2, start_time, score1, score2, &ctx.bumps)?;
-
-        // Pass ctx.remaining_accounts correctly
-        let remaining_accounts= ctx.remaining_accounts.to_vec();
-        ctx.accounts.settle_rewards_and_close_vault(remaining_accounts, &ctx.bumps)?;
+        ctx.accounts.submit_final_score(team1, team2, start_time, score1, score2, &ctx.bumps)?;
 
         Ok(())
     }
 
+    pub fn settle_rewards(
+        ctx: Context<SettleReward>,
+        number_of_winners: i64,
+    ) -> Result<()> {
+        ctx.accounts.settle_rewards_and_close_vault( number_of_winners, &ctx.bumps)?;
+
+
+        Ok(())
+    }
 }
 
