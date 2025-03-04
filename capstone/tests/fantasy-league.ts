@@ -266,7 +266,7 @@ describe("fantasy-league program allows to", () => {
                         systemProgram: SystemProgram.programId,
                         player: matchPrediction.account.player
                     })
-                    .signers([admin])
+                    // .signers([admin])
                     .rpc();
             }
         }
@@ -278,9 +278,6 @@ describe("fantasy-league program allows to", () => {
         console.log(`Admin lamports after ${adminAccount.lamports}`);
         console.log(`Vault is closed =  ${vault === undefined}`);
     });
-
-
-
 
 // it("Input Retrieves all Predictions", async () => {
 //     const accounts = await connection.getProgramAccounts(programId);
